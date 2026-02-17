@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "udt-load-calculator",
-    "slug": "udt-load-calculator",
+    "name": "udt-loan-calculator",
+    "slug": "udt-loan-calculator",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

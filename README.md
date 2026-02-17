@@ -56,7 +56,7 @@ A modern, feature-rich React Native (Expo) mobile application for universal loan
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd udt-load-calculator
+cd udt-loan-calculator
 ```
 
 2. Install dependencies:
@@ -77,7 +77,7 @@ npm start
 ## Project Structure
 
 ```
-udt-load-calculator/
+udt-loan-calculator/
 ├── src/
 │   ├── components/
 │   │   ├── LoanCalculator/
