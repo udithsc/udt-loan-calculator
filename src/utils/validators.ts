@@ -43,10 +43,21 @@ export const validateInterestRate = (rate: number): string | null => {
   return null;
 };
 
+export const validateExtraPayment = (amount: number): string | null => {
+  if (isNaN(amount)) {
+    return null;
+  }
+  if (amount < 0) {
+    return 'Extra payment cannot be negative';
+  }
+  return null;
+};
+
 export const validateLoanInputs = (
   amount: number,
   duration: number,
-  interestRate: number
+  interestRate: number,
+  extraPayment: number = 0,
 ): string | null => {
   const amountError = validateLoanAmount(amount);
   if (amountError) return amountError;
@@ -56,6 +67,9 @@ export const validateLoanInputs = (
 
   const rateError = validateInterestRate(interestRate);
   if (rateError) return rateError;
+
+  const extraPaymentError = validateExtraPayment(extraPayment);
+  if (extraPaymentError) return extraPaymentError;
 
   return null;
 };

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Platform } from 'react-native';
 import { NumberInput } from '../common/NumberInput';
 import { CurrencySelector } from '../common/CurrencySelector';
@@ -13,6 +13,7 @@ interface LoanInputsProps {
   durationYears: string;
   durationMonths: string;
   interestRate: string;
+  extraMonthlyPayment: string;
   repaymentType: RepaymentType;
   startDate: Date;
   currency: Currency;
@@ -21,6 +22,7 @@ interface LoanInputsProps {
   onDurationYearsChange: (value: string) => void;
   onDurationMonthsChange: (value: string) => void;
   onInterestRateChange: (value: string) => void;
+  onExtraMonthlyPaymentChange: (value: string) => void;
   onRepaymentTypeChange: (type: RepaymentType) => void;
   onStartDateChange: (date: Date) => void;
   onCurrencyChange: (currency: Currency) => void;
@@ -31,6 +33,7 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
   durationYears,
   durationMonths,
   interestRate,
+  extraMonthlyPayment,
   repaymentType,
   startDate,
   currency,
@@ -39,6 +42,7 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
   onDurationYearsChange,
   onDurationMonthsChange,
   onInterestRateChange,
+  onExtraMonthlyPaymentChange,
   onRepaymentTypeChange,
   onStartDateChange,
   onCurrencyChange,
@@ -46,11 +50,18 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const { colors } = useTheme();
 
-  const loanConfig = loanType
-    ? LOAN_TYPE_CONFIGS.find((c) => c.type === loanType)
-    : null;
+  const loanConfig = loanType ? LOAN_TYPE_CONFIGS.find((c) => c.type === loanType) : null;
+  const durationPresets = [
+    { label: '1Y', months: 12 },
+    { label: '3Y', months: 36 },
+    { label: '5Y', months: 60 },
+    { label: '15Y', months: 180 },
+    { label: '30Y', months: 360 },
+  ].filter(
+    (preset) => !loanConfig?.maxDurationMonths || preset.months <= loanConfig.maxDurationMonths,
+  );
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
+  const handleDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
     }
@@ -59,8 +70,22 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
     }
   };
 
+  const applyDurationPreset = (months: number) => {
+    const years = Math.floor(months / 12);
+    const remainingMonths = months % 12;
+    onDurationYearsChange(years.toString());
+    onDurationMonthsChange(remainingMonths.toString());
+  };
+
   return (
     <View style={styles.container}>
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Loan details</Text>
+        <Text style={[styles.sectionSubtitle, { color: colors.mutedForeground }]}>
+          Enter the basics to estimate your repayment plan.
+        </Text>
+      </View>
+
       {/* Amount & Currency Row */}
       <View style={styles.row}>
         <View style={styles.flex2}>
@@ -74,10 +99,7 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
         </View>
         <View style={styles.flex1}>
           <Text style={[styles.label, { color: colors.foreground }]}>Currency</Text>
-          <CurrencySelector
-            selectedCurrency={currency}
-            onSelect={onCurrencyChange}
-          />
+          <CurrencySelector selectedCurrency={currency} onSelect={onCurrencyChange} />
         </View>
       </View>
 
@@ -103,13 +125,35 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
           <Text style={[styles.durationLabel, { color: colors.mutedForeground }]}>months</Text>
         </View>
       </View>
+      <View style={styles.presetRow}>
+        {durationPresets.map((preset) => (
+          <TouchableOpacity
+            key={preset.label}
+            style={[styles.presetChip, { backgroundColor: colors.secondary }]}
+            onPress={() => applyDurationPreset(preset.months)}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.presetChipText, { color: colors.secondaryForeground }]}>
+              {preset.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* Interest Rate */}
       <NumberInput
         label="Interest Rate (%)"
         value={interestRate}
         onChangeText={onInterestRateChange}
-        placeholder={loanConfig?.defaultInterestRate?.toString() || "0"}
+        placeholder={loanConfig?.defaultInterestRate?.toString() || '0'}
+        keyboardType="decimal-pad"
+      />
+
+      <NumberInput
+        label="Extra Monthly Payment"
+        value={extraMonthlyPayment}
+        onChangeText={onExtraMonthlyPaymentChange}
+        placeholder="0"
         keyboardType="decimal-pad"
       />
 
@@ -119,7 +163,7 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
         <TouchableOpacity
           style={[
             styles.segment,
-            { borderColor: colors.input },
+            { borderColor: colors.input, backgroundColor: colors.surfaceElevated },
             repaymentType === 'equated' && {
               backgroundColor: colors.primary,
               borderColor: colors.primary,
@@ -140,7 +184,7 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
         <TouchableOpacity
           style={[
             styles.segment,
-            { borderColor: colors.input },
+            { borderColor: colors.input, backgroundColor: colors.surfaceElevated },
             repaymentType === 'reducing' && {
               backgroundColor: colors.primary,
               borderColor: colors.primary,
@@ -152,7 +196,9 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
           <Text
             style={[
               styles.segmentText,
-              { color: repaymentType === 'reducing' ? colors.primaryForeground : colors.foreground },
+              {
+                color: repaymentType === 'reducing' ? colors.primaryForeground : colors.foreground,
+              },
             ]}
           >
             Reducing
@@ -163,10 +209,14 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
       {/* Start Date */}
       <Text style={[styles.label, { color: colors.foreground }]}>Start Date</Text>
       <TouchableOpacity
-        style={[styles.dateButton, {
-          borderColor: colors.input,
-          backgroundColor: colors.background,
-        }]}
+        style={[
+          styles.dateButton,
+          {
+            borderColor: colors.input,
+            backgroundColor: colors.surfaceElevated,
+            shadowColor: colors.shadow,
+          },
+        ]}
         onPress={() => setShowDatePicker(true)}
         activeOpacity={0.7}
       >
@@ -203,6 +253,18 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
   },
+  sectionHeader: {
+    marginBottom: spacing.xl,
+  },
+  sectionTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: '800',
+  },
+  sectionSubtitle: {
+    fontSize: fontSize.sm,
+    marginTop: spacing.xs,
+    lineHeight: 20,
+  },
   row: {
     flexDirection: 'row',
     gap: spacing.md,
@@ -215,13 +277,13 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: fontSize.sm,
-    fontWeight: '500',
+    fontWeight: '700',
     marginBottom: spacing.sm,
   },
   durationRow: {
     flexDirection: 'row',
     gap: spacing.md,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sm,
   },
   durationInput: {
     flex: 1,
@@ -229,33 +291,54 @@ const styles = StyleSheet.create({
   durationLabel: {
     fontSize: fontSize.xs,
     textAlign: 'center',
-    marginTop: -spacing.md,
+    marginTop: spacing.xs,
+  },
+  presetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  presetChip: {
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  presetChipText: {
+    fontSize: fontSize.xs,
+    fontWeight: '800',
   },
   segmentedControl: {
     flexDirection: 'row',
     marginBottom: spacing.lg,
+    gap: spacing.sm,
   },
   segment: {
     flex: 1,
     paddingVertical: spacing.md,
     alignItems: 'center',
     borderWidth: 1,
-    marginRight: -1,
+    borderRadius: radius.lg,
   },
   segmentText: {
     fontSize: fontSize.sm,
-    fontWeight: '500',
+    fontWeight: '700',
   },
   dateButton: {
-    height: 40,
+    height: 48,
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
     borderWidth: 1,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     marginBottom: spacing.lg,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 1,
   },
   dateButtonText: {
-    fontSize: fontSize.sm,
+    fontSize: fontSize.base,
+    fontWeight: '600',
   },
   datePickerClose: {
     marginBottom: spacing.lg,

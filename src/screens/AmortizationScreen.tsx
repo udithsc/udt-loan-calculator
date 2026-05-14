@@ -10,12 +10,14 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { AmortizationTable } from '../components/LoanCalculator/AmortizationTable';
+import { LoanCalculationResult, LoanInputs as LoanInputsType } from '../types/loan';
 import {
-  LoanCalculationResult,
-  LoanInputs as LoanInputsType,
-} from '../types/loan';
-import { shareAmortizationSchedule, sendLoanResultsByEmail, shareLoanResults } from '../services/shareService';
+  shareAmortizationSchedule,
+  sendLoanResultsByEmail,
+  shareLoanResults,
+} from '../services/shareService';
 import { useTheme, radius, spacing, fontSize } from '../context/ThemeContext';
 import { formatCurrency, formatDuration, formatPercentage } from '../utils/formatters';
 
@@ -74,63 +76,66 @@ export const AmortizationScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+      <View style={styles.header}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.card, borderColor: colors.border }]}
           onPress={() => navigation.goBack()}
         >
-          <Text style={[styles.backButtonText, { color: colors.foreground }]}>←</Text>
+          <MaterialCommunityIcons name="chevron-left" size={24} color={colors.foreground} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-          Schedule
-        </Text>
+        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Schedule</Text>
         <TouchableOpacity
-          style={styles.shareButton}
+          style={[styles.shareButton, { backgroundColor: colors.secondary }]}
           onPress={() => setShareModalVisible(true)}
           disabled={isLoading}
         >
           {isLoading ? (
             <ActivityIndicator size="small" color={colors.foreground} />
           ) : (
-            <Text style={[styles.shareButtonText, { color: colors.foreground }]}>Share</Text>
+            <>
+              <MaterialCommunityIcons
+                name="share-variant"
+                size={16}
+                color={colors.secondaryForeground}
+              />
+              <Text style={[styles.shareButtonText, { color: colors.secondaryForeground }]}>
+                Share
+              </Text>
+            </>
           )}
         </TouchableOpacity>
       </View>
 
-      {/* Summary Bar */}
-      <View style={[styles.summaryBar, { borderBottomColor: colors.border }]}>
+      <View
+        style={[
+          styles.summaryBar,
+          { backgroundColor: colors.card, borderColor: colors.border, shadowColor: colors.shadow },
+        ]}
+      >
         <View style={styles.summaryItem}>
           <Text style={[styles.summaryValue, { color: colors.foreground }]}>
             {formatCurrency(inputs.loanAmount, inputs.currency)}
           </Text>
-          <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>
-            Principal
-          </Text>
+          <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>Principal</Text>
         </View>
         <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
         <View style={styles.summaryItem}>
           <Text style={[styles.summaryValue, { color: colors.foreground }]}>
             {formatPercentage(inputs.interestRate, 1)}
           </Text>
-          <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>
-            Rate
-          </Text>
+          <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>Rate</Text>
         </View>
         <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
         <View style={styles.summaryItem}>
           <Text style={[styles.summaryValue, { color: colors.foreground }]}>
             {formatDuration(inputs.durationMonths)}
           </Text>
-          <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>
-            Duration
-          </Text>
+          <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>Duration</Text>
         </View>
       </View>
 
       <AmortizationTable schedule={results.amortizationSchedule} currency={inputs.currency} />
 
-      {/* Share Modal */}
       <Modal
         visible={shareModalVisible}
         transparent
@@ -138,13 +143,19 @@ export const AmortizationScreen: React.FC = () => {
         onRequestClose={() => setShareModalVisible(false)}
       >
         <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
-          <View style={[styles.modalContent, { backgroundColor: colors.popover }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.popover, shadowColor: colors.shadow },
+            ]}
+          >
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>Share</Text>
 
             <TouchableOpacity
               style={[styles.modalOption, { borderBottomColor: colors.border }]}
               onPress={handleShareSummary}
             >
+              <MaterialCommunityIcons name="share-variant" size={20} color={colors.primary} />
               <Text style={[styles.modalOptionText, { color: colors.foreground }]}>
                 Share Summary
               </Text>
@@ -154,6 +165,7 @@ export const AmortizationScreen: React.FC = () => {
               style={[styles.modalOption, { borderBottomColor: colors.border }]}
               onPress={handleShare}
             >
+              <MaterialCommunityIcons name="file-table-outline" size={20} color={colors.primary} />
               <Text style={[styles.modalOptionText, { color: colors.foreground }]}>
                 Share Full Schedule
               </Text>
@@ -163,6 +175,7 @@ export const AmortizationScreen: React.FC = () => {
               style={[styles.modalOption, { borderBottomColor: colors.border }]}
               onPress={handleEmail}
             >
+              <MaterialCommunityIcons name="email-outline" size={20} color={colors.primary} />
               <Text style={[styles.modalOptionText, { color: colors.foreground }]}>
                 Send via Email
               </Text>
@@ -192,35 +205,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
   },
   backButton: {
     width: 40,
     height: 40,
+    borderRadius: radius.lg,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backButtonText: {
-    fontSize: 20,
-  },
   headerTitle: {
-    fontSize: fontSize.base,
-    fontWeight: '500',
+    fontSize: fontSize.lg,
+    fontWeight: '800',
   },
   shareButton: {
+    minWidth: 64,
+    height: 40,
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: spacing.xs,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
   },
   shareButtonText: {
     fontSize: fontSize.sm,
-    fontWeight: '500',
+    fontWeight: '800',
   },
   summaryBar: {
     flexDirection: 'row',
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.lg,
     paddingHorizontal: spacing.lg,
-    borderBottomWidth: 1,
+    borderWidth: 1,
+    borderRadius: radius.xl,
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.md,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 2,
   },
   summaryItem: {
     flex: 1,
@@ -228,7 +253,7 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   summaryLabel: {
     fontSize: fontSize.xs,
@@ -246,22 +271,29 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    borderRadius: radius.lg,
+    borderRadius: radius['2xl'],
     overflow: 'hidden',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.22,
+    shadowRadius: 28,
+    elevation: 8,
   },
   modalTitle: {
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontWeight: '800',
     padding: spacing.lg,
     textAlign: 'center',
   },
   modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     padding: spacing.lg,
     borderBottomWidth: 1,
   },
   modalOptionText: {
     fontSize: fontSize.base,
-    textAlign: 'center',
+    fontWeight: '700',
   },
   modalCancel: {
     padding: spacing.lg,

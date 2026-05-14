@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   ViewStyle,
+  StyleProp,
   ActivityIndicator,
 } from 'react-native';
 import { useTheme, radius } from '../../context/ThemeContext';
@@ -15,7 +16,7 @@ interface ButtonProps {
   size?: 'default' | 'sm' | 'lg';
   disabled?: boolean;
   loading?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
 }
 
@@ -101,6 +102,7 @@ export const Button: React.FC<ButtonProps> = ({
           backgroundColor: getBackgroundColor(),
           borderColor: getBorderColor(),
           borderWidth: variant === 'outline' ? 1 : 0,
+          shadowColor: colors.shadow,
           ...getPadding(),
         },
         style,
@@ -113,10 +115,7 @@ export const Button: React.FC<ButtonProps> = ({
       accessibilityState={{ disabled: disabled || loading }}
     >
       {loading ? (
-        <ActivityIndicator
-          color={getTextColor()}
-          size="small"
-        />
+        <ActivityIndicator color={getTextColor()} size="small" />
       ) : (
         <Text
           style={[
@@ -136,13 +135,16 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 40,
+    minHeight: 46,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 3,
   },
   buttonText: {
-    fontWeight: '500',
-    letterSpacing: 0.3,
+    fontWeight: '700',
   },
 });

@@ -8,19 +8,23 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LoanInputs } from '../components/LoanCalculator/LoanInputs';
 import { LoanResults } from '../components/LoanCalculator/LoanResults';
 import { Button } from '../components/common/Button';
-import { calculateLoan } from '../services/loanCalculator';
+import { calculateLoan, compareLoanRepaymentTypes } from '../services/loanCalculator';
 import { saveCalculation } from '../services/storageService';
 import { DEFAULT_CURRENCY } from '../constants/currencies';
 import {
   LoanType,
   LoanInputs as LoanInputsType,
   LoanCalculationResult,
+  LoanComparison,
   RepaymentType,
   LOAN_TYPE_CONFIGS,
 } from '../types/loan';
@@ -49,12 +53,17 @@ export const CalculatorScreen: React.FC = () => {
   const [durationYears, setDurationYears] = useState('');
   const [durationMonths, setDurationMonths] = useState('');
   const [interestRate, setInterestRate] = useState(defaultInterestRate);
+  const [extraMonthlyPayment, setExtraMonthlyPayment] = useState('');
   const [repaymentType, setRepaymentType] = useState<RepaymentType>('equated');
   const [startDate, setStartDate] = useState(new Date());
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
   const [results, setResults] = useState<LoanCalculationResult | null>(null);
+  const [comparison, setComparison] = useState<LoanComparison | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [loanName, setLoanName] = useState('');
 
   const getTotalMonths = (): number => {
     const years = parseInt(durationYears, 10) || 0;
@@ -62,55 +71,68 @@ export const CalculatorScreen: React.FC = () => {
     return years * 12 + months;
   };
 
+  const buildInputs = (): LoanInputsType => ({
+    loanAmount: parseFloat(loanAmount),
+    durationYears: parseInt(durationYears, 10) || 0,
+    durationMonths: getTotalMonths(),
+    interestRate: parseFloat(interestRate),
+    repaymentType,
+    startDate,
+    currency,
+    extraMonthlyPayment: parseFloat(extraMonthlyPayment) || 0,
+  });
+
   const handleCalculate = async () => {
     setError(null);
 
     const amount = parseFloat(loanAmount);
     const totalMonths = getTotalMonths();
     const rate = parseFloat(interestRate);
+    const extraPayment = parseFloat(extraMonthlyPayment) || 0;
 
-    const validationError = validateLoanInputs(amount, totalMonths, rate);
+    const validationError = validateLoanInputs(amount, totalMonths, rate, extraPayment);
     if (validationError) {
       setError(validationError);
       setResults(null);
+      setComparison(null);
       return;
     }
 
-    const inputs: LoanInputsType = {
-      loanAmount: amount,
-      durationYears: parseInt(durationYears, 10) || 0,
-      durationMonths: totalMonths,
-      interestRate: rate,
-      repaymentType,
-      startDate,
-      currency,
-    };
+    const inputs = buildInputs();
 
     const calculationResults = calculateLoan(inputs);
+    const comparisonResults = compareLoanRepaymentTypes(inputs);
     setResults(calculationResults);
-
-    try {
-      setIsSaving(true);
-      await saveCalculation(inputs, calculationResults);
-    } catch (err) {
-      console.error('Error saving calculation:', err);
-    } finally {
-      setIsSaving(false);
-    }
+    setComparison(comparisonResults);
+    setIsSaved(false);
   };
 
   const handleViewAmortization = () => {
     if (results) {
-      const inputs: LoanInputsType = {
-        loanAmount: parseFloat(loanAmount),
-        durationYears: parseInt(durationYears, 10) || 0,
-        durationMonths: getTotalMonths(),
-        interestRate: parseFloat(interestRate),
-        repaymentType,
-        startDate,
-        currency,
-      };
-      navigation.navigate('Amortization', { results, inputs });
+      navigation.navigate('Amortization', { results, inputs: buildInputs() });
+    }
+  };
+
+  const handleSaveLoan = async () => {
+    if (!results) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await saveCalculation(
+        buildInputs(),
+        results,
+        loanName.trim() || `${loanConfig?.title || 'Loan'} ${new Date().toLocaleDateString()}`,
+      );
+      setIsSaved(true);
+      setSaveModalVisible(false);
+      setLoanName('');
+    } catch (err) {
+      console.error('Error saving calculation:', err);
+      setError('Unable to save this loan. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -119,30 +141,35 @@ export const CalculatorScreen: React.FC = () => {
     setDurationYears('');
     setDurationMonths('');
     setInterestRate(defaultInterestRate);
+    setExtraMonthlyPayment('');
     setRepaymentType('equated');
     setStartDate(new Date());
     setResults(null);
+    setComparison(null);
+    setIsSaved(false);
     setError(null);
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.iconButton, { backgroundColor: colors.card, borderColor: colors.border }]}
           onPress={() => navigation.goBack()}
         >
-          <Text style={[styles.backButtonText, { color: colors.foreground }]}>←</Text>
+          <MaterialCommunityIcons name="chevron-left" size={24} color={colors.foreground} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-          {loanConfig?.title || 'Calculator'}
-        </Text>
+        <View style={styles.headerCenter}>
+          <Text style={[styles.headerEyebrow, { color: colors.primary }]}>Calculator</Text>
+          <Text style={[styles.headerTitle, { color: colors.foreground }]}>
+            {loanConfig?.title || 'Calculator'}
+          </Text>
+        </View>
         <TouchableOpacity
-          style={styles.resetButton}
+          style={[styles.resetButton, { backgroundColor: colors.secondary }]}
           onPress={handleReset}
         >
-          <Text style={[styles.resetButtonText, { color: colors.mutedForeground }]}>Reset</Text>
+          <Text style={[styles.resetButtonText, { color: colors.secondaryForeground }]}>Reset</Text>
         </TouchableOpacity>
       </View>
 
@@ -156,35 +183,46 @@ export const CalculatorScreen: React.FC = () => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <LoanInputs
-            loanAmount={loanAmount}
-            durationYears={durationYears}
-            durationMonths={durationMonths}
-            interestRate={interestRate}
-            repaymentType={repaymentType}
-            startDate={startDate}
-            currency={currency}
-            onLoanAmountChange={setLoanAmount}
-            onDurationYearsChange={setDurationYears}
-            onDurationMonthsChange={setDurationMonths}
-            onInterestRateChange={setInterestRate}
-            onRepaymentTypeChange={setRepaymentType}
-            onStartDateChange={setStartDate}
-            onCurrencyChange={setCurrency}
-            loanType={loanType}
-          />
+          <View
+            style={[styles.formCard, { backgroundColor: colors.card, shadowColor: colors.shadow }]}
+          >
+            <LoanInputs
+              loanAmount={loanAmount}
+              durationYears={durationYears}
+              durationMonths={durationMonths}
+              interestRate={interestRate}
+              extraMonthlyPayment={extraMonthlyPayment}
+              repaymentType={repaymentType}
+              startDate={startDate}
+              currency={currency}
+              onLoanAmountChange={setLoanAmount}
+              onDurationYearsChange={setDurationYears}
+              onDurationMonthsChange={setDurationMonths}
+              onInterestRateChange={setInterestRate}
+              onExtraMonthlyPaymentChange={setExtraMonthlyPayment}
+              onRepaymentTypeChange={setRepaymentType}
+              onStartDateChange={setStartDate}
+              onCurrencyChange={setCurrency}
+              loanType={loanType}
+            />
+          </View>
 
           {error && (
-            <View style={[styles.errorContainer, {
-              backgroundColor: colors.destructive + '10',
-              borderColor: colors.destructive + '30',
-            }]}>
+            <View
+              style={[
+                styles.errorContainer,
+                {
+                  backgroundColor: colors.destructive + '10',
+                  borderColor: colors.destructive + '30',
+                },
+              ]}
+            >
               <Text style={[styles.errorText, { color: colors.destructive }]}>{error}</Text>
             </View>
           )}
 
           <Button
-            title="Calculate"
+            title="Calculate Payment"
             onPress={handleCalculate}
             variant="default"
             size="lg"
@@ -201,6 +239,7 @@ export const CalculatorScreen: React.FC = () => {
                 startDate={startDate}
                 currency={currency}
                 results={results}
+                comparison={comparison}
                 onViewAmortization={handleViewAmortization}
               />
               <Button
@@ -209,10 +248,66 @@ export const CalculatorScreen: React.FC = () => {
                 variant="outline"
                 style={styles.scheduleButton}
               />
+              <Button
+                title={isSaved ? 'Saved' : 'Save Loan'}
+                onPress={() => setSaveModalVisible(true)}
+                variant={isSaved ? 'secondary' : 'default'}
+                style={styles.scheduleButton}
+                disabled={isSaved}
+              />
             </>
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={saveModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSaveModalVisible(false)}
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+          <View
+            style={[
+              styles.saveModal,
+              { backgroundColor: colors.popover, shadowColor: colors.shadow },
+            ]}
+          >
+            <Text style={[styles.saveTitle, { color: colors.foreground }]}>Save loan</Text>
+            <Text style={[styles.saveSubtitle, { color: colors.mutedForeground }]}>
+              Name this loan so you can track its next payment from Saved Loans.
+            </Text>
+            <TextInput
+              style={[
+                styles.saveInput,
+                {
+                  backgroundColor: colors.surfaceElevated,
+                  borderColor: colors.input,
+                  color: colors.foreground,
+                },
+              ]}
+              value={loanName}
+              onChangeText={setLoanName}
+              placeholder="Loan name"
+              placeholderTextColor={colors.mutedForeground}
+            />
+            <View style={styles.saveActions}>
+              <Button
+                title="Cancel"
+                onPress={() => setSaveModalVisible(false)}
+                variant="outline"
+                style={styles.saveActionButton}
+              />
+              <Button
+                title={isSaving ? 'Saving...' : 'Save'}
+                onPress={handleSaveLoan}
+                loading={isSaving}
+                style={styles.saveActionButton}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -225,29 +320,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
   },
-  backButton: {
+  iconButton: {
     width: 40,
     height: 40,
+    borderRadius: radius.lg,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backButtonText: {
-    fontSize: 20,
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  headerEyebrow: {
+    fontSize: fontSize.xs,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
   headerTitle: {
-    fontSize: fontSize.base,
-    fontWeight: '500',
+    fontSize: fontSize.lg,
+    fontWeight: '800',
+    marginTop: 2,
   },
   resetButton: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    minWidth: 58,
+    height: 40,
+    borderRadius: radius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   resetButtonText: {
     fontSize: fontSize.sm,
+    fontWeight: '800',
   },
   keyboardView: {
     flex: 1,
@@ -258,6 +367,15 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: spacing.xl,
     paddingBottom: spacing['4xl'],
+  },
+  formCard: {
+    borderRadius: radius['2xl'],
+    padding: spacing.xl,
+    marginBottom: spacing.lg,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.12,
+    shadowRadius: 28,
+    elevation: 4,
   },
   calculateButton: {
     marginBottom: spacing.xl,
@@ -274,5 +392,43 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: fontSize.sm,
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  saveModal: {
+    borderRadius: radius['2xl'],
+    padding: spacing.xl,
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.22,
+    shadowRadius: 28,
+    elevation: 8,
+  },
+  saveTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: '900',
+  },
+  saveSubtitle: {
+    fontSize: fontSize.sm,
+    lineHeight: 20,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  saveInput: {
+    height: 48,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.lg,
+    fontSize: fontSize.base,
+    marginBottom: spacing.lg,
+  },
+  saveActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  saveActionButton: {
+    flex: 1,
   },
 });

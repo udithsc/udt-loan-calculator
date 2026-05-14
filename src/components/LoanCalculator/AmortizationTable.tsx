@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+} from 'react-native';
 import { AmortizationEntry, Currency } from '../../types/loan';
 import { formatCurrency, formatDateShort } from '../../utils/formatters';
 import { useTheme, radius, spacing, fontSize } from '../../context/ThemeContext';
@@ -13,10 +22,7 @@ interface AmortizationTableProps {
   currency: Currency;
 }
 
-export const AmortizationTable: React.FC<AmortizationTableProps> = ({
-  schedule,
-  currency,
-}) => {
+export const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, currency }) => {
   const { colors } = useTheme();
   const [expandedMonth, setExpandedMonth] = useState<number | null>(null);
 
@@ -28,23 +34,21 @@ export const AmortizationTable: React.FC<AmortizationTableProps> = ({
   const totalPayments = schedule.reduce((sum, entry) => sum + entry.payment, 0);
   const totalInterest = schedule.reduce((sum, entry) => sum + entry.interest, 0);
 
-  const renderItem = ({ item, index }: { item: AmortizationEntry; index: number }) => {
+  const renderItem = ({ item }: { item: AmortizationEntry }) => {
     const isExpanded = expandedMonth === item.month;
 
     return (
       <TouchableOpacity
         style={[
           styles.row,
-          { borderBottomColor: colors.border },
+          { borderColor: colors.border, backgroundColor: colors.card, shadowColor: colors.shadow },
         ]}
         onPress={() => toggleExpand(item.month)}
         activeOpacity={0.7}
       >
         <View style={styles.rowMain}>
           <View style={styles.monthCol}>
-            <Text style={[styles.monthNum, { color: colors.foreground }]}>
-              {item.month}
-            </Text>
+            <Text style={[styles.monthNum, { color: colors.foreground }]}>Month {item.month}</Text>
             <Text style={[styles.monthDate, { color: colors.mutedForeground }]}>
               {formatDateShort(item.date)}
             </Text>
@@ -60,13 +64,17 @@ export const AmortizationTable: React.FC<AmortizationTableProps> = ({
         {isExpanded && (
           <View style={[styles.expandedContent, { borderTopColor: colors.border }]}>
             <View style={styles.expandedRow}>
-              <Text style={[styles.expandedLabel, { color: colors.mutedForeground }]}>Principal</Text>
+              <Text style={[styles.expandedLabel, { color: colors.mutedForeground }]}>
+                Principal
+              </Text>
               <Text style={[styles.expandedValue, { color: colors.foreground }]}>
                 {formatCurrency(item.principal, currency)}
               </Text>
             </View>
             <View style={styles.expandedRow}>
-              <Text style={[styles.expandedLabel, { color: colors.mutedForeground }]}>Interest</Text>
+              <Text style={[styles.expandedLabel, { color: colors.mutedForeground }]}>
+                Interest
+              </Text>
               <Text style={[styles.expandedValue, { color: colors.foreground }]}>
                 {formatCurrency(item.interest, currency)}
               </Text>
@@ -78,10 +86,8 @@ export const AmortizationTable: React.FC<AmortizationTableProps> = ({
   };
 
   const ListHeader = () => (
-    <View style={[styles.header, { borderBottomColor: colors.border }]}>
-      <Text style={[styles.headerText, styles.monthCol, { color: colors.mutedForeground }]}>
-        #
-      </Text>
+    <View style={[styles.header, { backgroundColor: colors.background }]}>
+      <Text style={[styles.headerText, styles.monthCol, { color: colors.mutedForeground }]}>#</Text>
       <Text style={[styles.headerText, styles.paymentCol, { color: colors.mutedForeground }]}>
         Payment
       </Text>
@@ -92,10 +98,15 @@ export const AmortizationTable: React.FC<AmortizationTableProps> = ({
   );
 
   const ListFooter = () => (
-    <View style={[styles.footer, {
-      backgroundColor: colors.muted,
-      borderTopColor: colors.border,
-    }]}>
+    <View
+      style={[
+        styles.footer,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+        },
+      ]}
+    >
       <View style={styles.footerRow}>
         <Text style={[styles.footerLabel, { color: colors.mutedForeground }]}>Total Paid</Text>
         <Text style={[styles.footerValue, { color: colors.foreground }]}>
@@ -123,6 +134,7 @@ export const AmortizationTable: React.FC<AmortizationTableProps> = ({
         initialNumToRender={20}
         maxToRenderPerBatch={20}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
       />
     </View>
   );
@@ -132,21 +144,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  listContent: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing['4xl'],
+  },
   header: {
     flexDirection: 'row',
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderBottomWidth: 1,
+    paddingHorizontal: spacing.sm,
   },
   headerText: {
     fontSize: fontSize.xs,
-    fontWeight: '500',
+    fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   row: {
     paddingHorizontal: spacing.lg,
-    borderBottomWidth: 1,
+    borderWidth: 1,
+    borderRadius: radius.xl,
+    marginBottom: spacing.md,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 1,
   },
   rowMain: {
     flexDirection: 'row',
@@ -154,11 +174,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   monthCol: {
-    width: 70,
+    width: 86,
   },
   monthNum: {
     fontSize: fontSize.sm,
-    fontWeight: '500',
+    fontWeight: '800',
   },
   monthDate: {
     fontSize: fontSize.xs,
@@ -195,7 +215,9 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: spacing.lg,
-    borderTopWidth: 1,
+    borderWidth: 1,
+    borderRadius: radius.xl,
+    marginTop: spacing.sm,
   },
   footerRow: {
     flexDirection: 'row',
@@ -207,6 +229,6 @@ const styles = StyleSheet.create({
   },
   footerValue: {
     fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontWeight: '800',
   },
 });

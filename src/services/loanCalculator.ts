@@ -4,17 +4,28 @@ import {
   LoanCalculationResult,
   AmortizationEntry,
   RepaymentType,
+  LoanComparison,
+  NextPaymentSummary,
 } from '../types/loan';
+
+const roundMoney = (amount: number): number => Number(amount.toFixed(2));
+
+const sumSchedulePayments = (schedule: AmortizationEntry[]): number =>
+  roundMoney(schedule.reduce((sum, entry) => sum + entry.payment, 0));
+
+const sumScheduleInterest = (schedule: AmortizationEntry[]): number =>
+  roundMoney(schedule.reduce((sum, entry) => sum + entry.interest, 0));
 
 /**
  * Calculate EMI (Equated Monthly Installment)
  */
-export const calculateEMI = (
-  principal: number,
-  annualRate: number,
-  months: number
-): number => {
-  if (principal <= 0 || months <= 0) {
+export const calculateEMI = (principal: number, annualRate: number, months: number): number => {
+  if (
+    !Number.isFinite(principal) ||
+    !Number.isFinite(annualRate) ||
+    principal <= 0 ||
+    months <= 0
+  ) {
     return 0;
   }
 
@@ -27,7 +38,7 @@ export const calculateEMI = (
   const numerator = principal * monthlyRate * Math.pow(1 + monthlyRate, months);
   const denominator = Math.pow(1 + monthlyRate, months) - 1;
 
-  return numerator / denominator;
+  return roundMoney(numerator / denominator);
 };
 
 /**
@@ -38,7 +49,7 @@ const calculateReducingBalancePayment = (
   principal: number,
   remainingBalance: number,
   annualRate: number,
-  months: number
+  months: number,
 ): { payment: number; interest: number; principalPayment: number } => {
   const monthlyRate = annualRate / 12 / 100;
   const constantPrincipal = principal / months;
@@ -46,9 +57,9 @@ const calculateReducingBalancePayment = (
   const payment = constantPrincipal + interest;
 
   return {
-    payment,
-    interest,
-    principalPayment: constantPrincipal,
+    payment: roundMoney(payment),
+    interest: roundMoney(interest),
+    principalPayment: roundMoney(constantPrincipal),
   };
 };
 
@@ -60,16 +71,24 @@ const generateEquatedAmortizationSchedule = (
   monthlyPayment: number,
   annualRate: number,
   months: number,
-  startDate: Date
+  startDate: Date,
+  extraMonthlyPayment: number,
 ): AmortizationEntry[] => {
   const schedule: AmortizationEntry[] = [];
   let balance = principal;
   const monthlyRate = annualRate / 12 / 100;
 
-  for (let month = 1; month <= months; month++) {
-    const interestPayment = annualRate === 0 ? 0 : balance * monthlyRate;
-    const principalPayment = monthlyPayment - interestPayment;
-    balance = Math.max(0, balance - principalPayment);
+  for (let month = 1; month <= months && balance > 0; month++) {
+    const interestPayment = roundMoney(annualRate === 0 ? 0 : balance * monthlyRate);
+    let payment = roundMoney(monthlyPayment + extraMonthlyPayment);
+    let principalPayment = roundMoney(payment - interestPayment);
+
+    if (month === months || principalPayment >= balance) {
+      principalPayment = roundMoney(balance);
+      payment = roundMoney(principalPayment + interestPayment);
+    }
+
+    balance = roundMoney(Math.max(0, balance - principalPayment));
 
     // Use date-fns for reliable date calculation
     const paymentDate = addMonths(startDate, month - 1);
@@ -80,7 +99,7 @@ const generateEquatedAmortizationSchedule = (
       interest: interestPayment,
       principal: principalPayment,
       balance: balance,
-      payment: monthlyPayment,
+      payment,
     });
   }
 
@@ -95,21 +114,21 @@ const generateReducingBalanceAmortizationSchedule = (
   principal: number,
   annualRate: number,
   months: number,
-  startDate: Date
+  startDate: Date,
+  extraMonthlyPayment: number,
 ): AmortizationEntry[] => {
   const schedule: AmortizationEntry[] = [];
   let balance = principal;
-  const constantPrincipal = principal / months;
+  for (let month = 1; month <= months && balance > 0; month++) {
+    const calculated = calculateReducingBalancePayment(principal, balance, annualRate, months);
 
-  for (let month = 1; month <= months; month++) {
-    const { payment, interest, principalPayment } = calculateReducingBalancePayment(
-      principal,
-      balance,
-      annualRate,
-      months
-    );
+    const scheduledPrincipal = roundMoney(calculated.principalPayment + extraMonthlyPayment);
+    const principalPayment =
+      month === months || scheduledPrincipal >= balance ? roundMoney(balance) : scheduledPrincipal;
+    const interest = calculated.interest;
+    const payment = roundMoney(principalPayment + interest);
 
-    balance = Math.max(0, balance - principalPayment);
+    balance = roundMoney(Math.max(0, balance - principalPayment));
 
     // Use date-fns for reliable date calculation
     const paymentDate = addMonths(startDate, month - 1);
@@ -131,7 +150,34 @@ const generateReducingBalanceAmortizationSchedule = (
  * Calculate complete loan details
  */
 export const calculateLoan = (inputs: LoanInputs): LoanCalculationResult => {
-  const { loanAmount, durationMonths, interestRate, repaymentType, startDate } = inputs;
+  const {
+    loanAmount,
+    durationMonths,
+    interestRate,
+    repaymentType,
+    startDate,
+    extraMonthlyPayment = 0,
+  } = inputs;
+
+  if (
+    !Number.isFinite(loanAmount) ||
+    !Number.isFinite(durationMonths) ||
+    !Number.isFinite(interestRate) ||
+    !Number.isFinite(extraMonthlyPayment) ||
+    loanAmount <= 0 ||
+    durationMonths <= 0 ||
+    extraMonthlyPayment < 0
+  ) {
+    return {
+      monthlyPayment: 0,
+      finalPayment: 0,
+      averagePayment: 0,
+      totalInterestPaid: 0,
+      totalAmountPayable: 0,
+      payOffDate: startDate,
+      amortizationSchedule: [],
+    };
+  }
 
   let amortizationSchedule: AmortizationEntry[];
   let monthlyPayment: number;
@@ -142,7 +188,8 @@ export const calculateLoan = (inputs: LoanInputs): LoanCalculationResult => {
       loanAmount,
       interestRate,
       durationMonths,
-      startDate
+      startDate,
+      extraMonthlyPayment,
     );
     // For reducing balance, first month payment is the highest
     monthlyPayment = amortizationSchedule[0]?.payment || 0;
@@ -154,22 +201,25 @@ export const calculateLoan = (inputs: LoanInputs): LoanCalculationResult => {
       monthlyPayment,
       interestRate,
       durationMonths,
-      startDate
+      startDate,
+      extraMonthlyPayment,
     );
   }
 
-  const totalInterestPaid = amortizationSchedule.reduce(
-    (sum, entry) => sum + entry.interest,
-    0
-  );
+  const totalInterestPaid = sumScheduleInterest(amortizationSchedule);
+  const totalAmountPayable = sumSchedulePayments(amortizationSchedule);
+  const finalPayment = amortizationSchedule[amortizationSchedule.length - 1]?.payment || 0;
+  const averagePayment = amortizationSchedule.length
+    ? roundMoney(totalAmountPayable / amortizationSchedule.length)
+    : 0;
 
-  const totalAmountPayable = loanAmount + totalInterestPaid;
-
-  // Calculate pay-off date using date-fns
-  const payOffDate = addMonths(startDate, durationMonths);
+  const lastPaymentDate = amortizationSchedule[amortizationSchedule.length - 1]?.date;
+  const payOffDate = lastPaymentDate || startDate;
 
   return {
     monthlyPayment,
+    finalPayment,
+    averagePayment,
     totalInterestPaid,
     totalAmountPayable,
     payOffDate,
@@ -180,14 +230,46 @@ export const calculateLoan = (inputs: LoanInputs): LoanCalculationResult => {
 /**
  * Compare two loans
  */
-export const compareLoanRepaymentTypes = (
-  inputs: LoanInputs
-): { equated: LoanCalculationResult; reducing: LoanCalculationResult } => {
+export const compareLoanRepaymentTypes = (inputs: LoanInputs): LoanComparison => {
   const equatedInputs = { ...inputs, repaymentType: 'equated' as RepaymentType };
   const reducingInputs = { ...inputs, repaymentType: 'reducing' as RepaymentType };
+  const equated = calculateLoan(equatedInputs);
+  const reducing = calculateLoan(reducingInputs);
 
   return {
-    equated: calculateLoan(equatedInputs),
-    reducing: calculateLoan(reducingInputs),
+    equated,
+    reducing,
+    interestSavingsWithReducing: roundMoney(equated.totalInterestPaid - reducing.totalInterestPaid),
+    totalPayableDifference: roundMoney(equated.totalAmountPayable - reducing.totalAmountPayable),
+  };
+};
+
+export const getNextPaymentSummary = (
+  result: LoanCalculationResult,
+  asOf: Date = new Date(),
+): NextPaymentSummary | null => {
+  if (!result.amortizationSchedule.length) {
+    return null;
+  }
+
+  const resolvedIndex = result.amortizationSchedule.findIndex((entry) => entry.date >= asOf);
+  if (resolvedIndex === -1) {
+    return null;
+  }
+  const nextPayment = result.amortizationSchedule[resolvedIndex];
+  const paidPayments = Math.max(0, resolvedIndex);
+  const totalPayments = result.amortizationSchedule.length;
+
+  return {
+    month: nextPayment.month,
+    date: nextPayment.date,
+    payment: nextPayment.payment,
+    principal: nextPayment.principal,
+    interest: nextPayment.interest,
+    balanceAfterPayment: nextPayment.balance,
+    remainingPayments: Math.max(0, totalPayments - resolvedIndex),
+    paidPayments,
+    totalPayments,
+    progress: totalPayments ? roundMoney((paidPayments / totalPayments) * 100) : 0,
   };
 };

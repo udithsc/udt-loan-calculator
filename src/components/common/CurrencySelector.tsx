@@ -1,13 +1,6 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  FlatList,
-  TextInput,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, TextInput } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Currency } from '../../types/loan';
 import { CURRENCIES } from '../../constants/currencies';
 import { useTheme, radius, spacing, fontSize } from '../../context/ThemeContext';
@@ -28,16 +21,20 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
   const filteredCurrencies = CURRENCIES.filter(
     (currency) =>
       currency.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      currency.name.toLowerCase().includes(searchQuery.toLowerCase())
+      currency.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
     <>
       <TouchableOpacity
-        style={[styles.selector, {
-          backgroundColor: colors.background,
-          borderColor: colors.input,
-        }]}
+        style={[
+          styles.selector,
+          {
+            backgroundColor: colors.surfaceElevated,
+            borderColor: colors.input,
+            shadowColor: colors.shadow,
+          },
+        ]}
         onPress={() => setModalVisible(true)}
         activeOpacity={0.7}
         accessibilityLabel={`Currency: ${selectedCurrency.name}`}
@@ -46,7 +43,7 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
         <Text style={[styles.selectorText, { color: colors.foreground }]}>
           {selectedCurrency.code}
         </Text>
-        <Text style={[styles.chevron, { color: colors.mutedForeground }]}>›</Text>
+        <MaterialCommunityIcons name="chevron-down" size={20} color={colors.mutedForeground} />
       </TouchableOpacity>
 
       <Modal
@@ -56,29 +53,35 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
-          <View style={[styles.modalContent, { backgroundColor: colors.popover }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.popover, shadowColor: colors.shadow },
+            ]}
+          >
             {/* Header */}
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.foreground }]}>
-                Select Currency
-              </Text>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>Select Currency</Text>
               <TouchableOpacity
                 onPress={() => setModalVisible(false)}
                 style={styles.closeButton}
                 accessibilityLabel="Close"
               >
-                <Text style={[styles.closeButtonText, { color: colors.mutedForeground }]}>×</Text>
+                <MaterialCommunityIcons name="close" size={22} color={colors.mutedForeground} />
               </TouchableOpacity>
             </View>
 
             {/* Search */}
             <View style={[styles.searchContainer, { borderBottomColor: colors.border }]}>
               <TextInput
-                style={[styles.searchInput, {
-                  color: colors.foreground,
-                  backgroundColor: colors.muted,
-                  borderColor: colors.input,
-                }]}
+                style={[
+                  styles.searchInput,
+                  {
+                    color: colors.foreground,
+                    backgroundColor: colors.muted,
+                    borderColor: colors.input,
+                  },
+                ]}
                 placeholder="Search..."
                 placeholderTextColor={colors.mutedForeground}
                 value={searchQuery}
@@ -141,16 +144,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderWidth: 1,
-    borderRadius: radius.md,
-    height: 40,
+    borderRadius: radius.lg,
+    height: 48,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 1,
   },
   selectorText: {
     fontSize: fontSize.sm,
     fontWeight: '500',
-  },
-  chevron: {
-    fontSize: fontSize.lg,
-    fontWeight: '300',
   },
   modalOverlay: {
     flex: 1,
@@ -161,8 +164,12 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxHeight: '70%',
-    borderRadius: radius.lg,
+    borderRadius: radius['2xl'],
     overflow: 'hidden',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.22,
+    shadowRadius: 28,
+    elevation: 8,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -178,10 +185,6 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: spacing.xs,
   },
-  closeButtonText: {
-    fontSize: 24,
-    lineHeight: 24,
-  },
   searchContainer: {
     padding: spacing.lg,
     borderBottomWidth: 1,
@@ -189,7 +192,7 @@ const styles = StyleSheet.create({
   searchInput: {
     height: 36,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     fontSize: fontSize.sm,
     borderWidth: 1,
   },

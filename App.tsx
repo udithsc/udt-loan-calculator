@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet, StatusBar } from 'react-native';
@@ -7,7 +7,7 @@ import { HomeScreen } from './src/screens/HomeScreen';
 import { CalculatorScreen } from './src/screens/CalculatorScreen';
 import { AmortizationScreen } from './src/screens/AmortizationScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
-import { ThemeProvider, useTheme, lightColors, darkColors } from './src/context/ThemeContext';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { LoanType, LoanCalculationResult, LoanInputs } from './src/types/loan';
 
 export type RootStackParamList = {

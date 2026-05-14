@@ -9,8 +9,9 @@ A modern, feature-rich React Native (Expo) mobile application for universal loan
 ## Features
 
 ### Core Features
+
 - **Multiple Loan Types**: Personal Loans, Mortgages, Auto Loans, and Business Loans
-- **Dual Calculation Methods**: 
+- **Dual Calculation Methods**:
   - **EMI (Equated Monthly Installment)**: Fixed monthly payments throughout the loan term
   - **Reducing Balance**: Decreasing payments as principal reduces over time
 - **Multi-Currency Support**: 12+ major currencies (USD, EUR, GBP, LKR, INR, JPY, AUD, CAD, CHF, CNY, SGD, NZD)
@@ -18,6 +19,7 @@ A modern, feature-rich React Native (Expo) mobile application for universal loan
 - **Flexible Duration Input**: Enter duration in years and/or months
 
 ### User Experience
+
 - **Modern Minimalist UI**: Clean, intuitive interface with smooth animations
 - **Dark Mode Support**: Light, dark, and system-adaptive themes
 - **Calculation History**: Auto-save and access recent calculations
@@ -25,11 +27,13 @@ A modern, feature-rich React Native (Expo) mobile application for universal loan
 - **Search & Filter**: Quick currency search in the selector
 
 ### Sharing & Export
+
 - **Share Results**: Share loan summaries via any installed app
 - **Share Amortization Schedule**: Export full payment breakdown
 - **Email Integration**: Send detailed results via email using device mail client
 
 ### Technical Features
+
 - **Offline Support**: Works without internet connection
 - **Data Persistence**: Saves theme preferences and calculation history
 - **Cross-Platform**: Works on iOS and Android
@@ -37,42 +41,136 @@ A modern, feature-rich React Native (Expo) mobile application for universal loan
 
 ## Screenshots
 
-| Home Screen | Calculator | Results | Amortization |
-|-------------|------------|---------|--------------|
+| Home Screen          | Calculator | Results           | Amortization     |
+| -------------------- | ---------- | ----------------- | ---------------- |
 | Loan types & history | Input form | Payment breakdown | Monthly schedule |
 
-## Getting Started
+## Local Setup
 
 ### Prerequisites
 
-- Node.js (v16 or higher)
-- npm or yarn
-- Expo CLI (installed globally or via npx)
-- For iOS: Xcode (on macOS)
-- For Android: Android Studio
+- Node.js 20 LTS or newer is recommended.
+- npm, included with Node.js.
+- Expo CLI through `npx expo` or the local npm scripts in this project.
+- Expo Go on a physical iOS or Android device, if testing on device.
+- For iOS simulator: macOS with Xcode installed.
+- For Android emulator: Android Studio with an emulator/device configured.
 
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd udt-loan-calculator
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
-3. Start the development server:
+3. Start the Expo development server:
+
 ```bash
 npm start
 ```
 
-4. Run on your device:
-   - Press `i` for iOS simulator
-   - Press `a` for Android emulator
-   - Scan QR code with Expo Go app on your device
+4. Run the app:
+   - Press `i` in the Expo terminal to open the iOS simulator.
+   - Press `a` in the Expo terminal to open an Android emulator.
+   - Press `w` to open the web version.
+   - Scan the QR code with Expo Go to run on a physical device.
+
+### Common Commands
+
+| Command                | Purpose                                      |
+| ---------------------- | -------------------------------------------- |
+| `npm start`            | Start the Expo development server            |
+| `npm run ios`          | Start Expo and open the iOS simulator        |
+| `npm run android`      | Start Expo and open Android                  |
+| `npm run web`          | Start Expo for web                           |
+| `npm test`             | Run Node test files under `src/**/*.test.ts` |
+| `npm run typecheck`    | Run TypeScript without emitting files        |
+| `npm run lint`         | Run ESLint                                   |
+| `npm run format:check` | Check Prettier formatting                    |
+| `npm run format`       | Format the project with Prettier             |
+
+### Verify Your Setup
+
+After installing dependencies, run the quality checks before opening a pull request or sharing a build:
+
+```bash
+npm run typecheck
+npm test
+npm run lint
+npm run format:check
+```
+
+If Expo behaves strangely after dependency or native package changes, restart it with a cleared Metro cache:
+
+```bash
+npm start -- --clear
+```
+
+## Debug Guide
+
+### Expo And Metro
+
+- Start the app with `npm start`.
+- Open the developer menu from the running app:
+  - iOS simulator: press `Cmd + D`.
+  - Android emulator: press `Cmd + M` on macOS or `Ctrl + M` on Windows/Linux.
+  - Physical device: shake the device.
+- Use the Expo terminal output for bundling errors, dependency resolution errors, and QR/device connection status.
+- Use the in-app red error screen for runtime errors. The stack trace usually points to the affected component, screen, or service.
+
+### JavaScript Debugging
+
+- Add temporary `console.log`, `console.warn`, or `console.error` calls while investigating.
+- Logs appear in the terminal that is running `npm start` and, depending on platform, in the simulator/device logs.
+- Keep calculation logic debugging focused in `src/services/loanCalculator.ts`; it is covered by tests in `src/services/loanCalculator.test.ts`.
+- Keep validation debugging focused in `src/utils/validators.ts`; related tests live in `src/utils/validators.test.ts`.
+- Keep display formatting debugging focused in `src/utils/formatters.ts`; related tests live in `src/utils/formatters.test.ts`.
+
+### Storage Debugging
+
+Local data is stored with `@react-native-async-storage/async-storage`.
+
+- Calculation history is managed in `src/services/storageService.ts`.
+- Theme preference is managed in `src/context/ThemeContext.tsx`.
+- Use the app's Settings screen to clear saved app data when testing history or theme behavior.
+- If persisted state looks stale during development, uninstall the app from the simulator/device or clear app storage, then reload from Expo.
+
+### Sharing And Email Debugging
+
+Sharing and email behavior is implemented in `src/services/shareService.ts`.
+
+- Native sharing uses React Native's `Share` API and is best tested on a real device or simulator.
+- Email uses `expo-mail-composer`; it requires a configured mail account on the test device.
+- On unsupported or unconfigured devices, the app should show an alert instead of crashing.
+- The web target may not behave the same as native for share and email flows.
+
+### Platform-Specific Notes
+
+- iOS requires Xcode and the iOS simulator for `npm run ios`.
+- Android requires Android Studio, an installed SDK, and either an emulator or connected device for `npm run android`.
+- The app runs in Expo Go, but native module compatibility should still be checked after package upgrades.
+- `app.json` enables the React Native new architecture with `"newArchEnabled": true`; if a native dependency issue appears after an upgrade, verify the package supports the Expo SDK version in use.
+
+### Common Issues
+
+| Issue                                | What to try                                                                                    |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| Metro cache or stale bundle issues   | Run `npm start -- --clear`                                                                     |
+| Device cannot connect to Expo        | Make sure the computer and device are on the same network, then restart Expo                   |
+| iOS simulator does not open          | Open Xcode once, install simulator components, then retry `npm run ios`                        |
+| Android emulator does not open       | Start an emulator from Android Studio first, then retry `npm run android`                      |
+| TypeScript import or type errors     | Run `npm run typecheck` and inspect the first reported error                                   |
+| Tests fail after calculation changes | Run `npm test` and compare expected values in the relevant `*.test.ts` file                    |
+| Share or email fails                 | Test on a device with native sharing/email configured and check `src/services/shareService.ts` |
+| Saved history/theme seems wrong      | Clear app data from Settings, uninstall the app, or clear simulator/device storage             |
 
 ## Project Structure
 
@@ -131,12 +229,14 @@ udt-loan-calculator/
 ### Understanding Repayment Types
 
 #### EMI (Equated Monthly Installment)
+
 - Fixed monthly payment throughout the loan term
 - Same amount every month
 - Total interest is higher compared to reducing balance
 - **Best for**: Predictable budgeting
 
 #### Reducing Balance
+
 - Payments decrease each month
 - Principal portion is constant, interest decreases
 - Total interest is lower
@@ -154,16 +254,19 @@ udt-loan-calculator/
 ## Calculation Formula
 
 ### EMI Formula
+
 ```
 EMI = [P × r × (1 + r)^n] / [(1 + r)^n – 1]
 ```
 
 Where:
+
 - **P** = Principal loan amount
 - **r** = Monthly interest rate (Annual Rate / 12 / 100)
 - **n** = Total number of monthly payments
 
 ### Reducing Balance Formula
+
 ```
 Monthly Interest = Remaining Balance × Monthly Rate
 Principal Payment = Loan Amount / Total Months
@@ -172,16 +275,16 @@ Monthly Payment = Principal Payment + Monthly Interest
 
 ## Technologies Used
 
-| Technology | Purpose |
-|------------|---------|
-| **React Native** | Mobile app framework |
-| **Expo** | Development platform |
-| **TypeScript** | Type safety |
-| **React Navigation** | Screen navigation |
-| **date-fns** | Date manipulation |
-| **AsyncStorage** | Local data persistence |
-| **expo-mail-composer** | Email integration |
-| **expo-sharing** | Native sharing |
+| Technology             | Purpose                |
+| ---------------------- | ---------------------- |
+| **React Native**       | Mobile app framework   |
+| **Expo**               | Development platform   |
+| **TypeScript**         | Type safety            |
+| **React Navigation**   | Screen navigation      |
+| **date-fns**           | Date manipulation      |
+| **AsyncStorage**       | Local data persistence |
+| **expo-mail-composer** | Email integration      |
+| **expo-sharing**       | Native sharing         |
 
 ## Configuration
 
@@ -192,7 +295,7 @@ export const CONFIG = {
   MIN_LOAN_AMOUNT: 1000,
   MAX_LOAN_AMOUNT: 100000000,
   MIN_DURATION_MONTHS: 1,
-  MAX_DURATION_MONTHS: 600,    // 50 years
+  MAX_DURATION_MONTHS: 600, // 50 years
   MIN_INTEREST_RATE: 0,
   MAX_INTEREST_RATE: 100,
   DEFAULT_DURATION_MONTHS: 12,
@@ -203,8 +306,9 @@ export const CONFIG = {
 ## Theming
 
 The app supports three theme modes:
+
 - **Light**: Clean white interface
-- **Dark**: Eye-friendly dark interface  
+- **Dark**: Eye-friendly dark interface
 - **System**: Follows device settings
 
 Theme preference is persisted and applied on app restart.
@@ -212,6 +316,7 @@ Theme preference is persisted and applied on app restart.
 ## Accessibility
 
 The app is built with accessibility in mind:
+
 - All interactive elements have accessibility labels
 - Proper role announcements for buttons and inputs
 - Support for VoiceOver (iOS) and TalkBack (Android)

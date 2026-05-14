@@ -27,16 +27,15 @@ export const NumberInput: React.FC<NumberInputProps> = ({
 
   return (
     <View style={[styles.container, style]}>
-      {label ? (
-        <Text style={[styles.label, { color: colors.foreground }]}>{label}</Text>
-      ) : null}
+      {label ? <Text style={[styles.label, { color: colors.foreground }]}>{label}</Text> : null}
       <TextInput
         style={[
           styles.input,
           {
-            backgroundColor: colors.background,
+            backgroundColor: colors.surfaceElevated,
             borderColor: error ? colors.destructive : colors.input,
             color: colors.foreground,
+            shadowColor: colors.shadow,
           },
         ]}
         value={value}
@@ -48,10 +47,7 @@ export const NumberInput: React.FC<NumberInputProps> = ({
         accessibilityHint={placeholder}
       />
       {error && (
-        <Text
-          style={[styles.errorText, { color: colors.destructive }]}
-          accessibilityRole="alert"
-        >
+        <Text style={[styles.errorText, { color: colors.destructive }]} accessibilityRole="alert">
           {error}
         </Text>
       )}
@@ -65,16 +61,20 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: fontSize.sm,
-    fontWeight: '500',
+    fontWeight: '700',
     marginBottom: spacing.sm,
   },
   input: {
     borderWidth: 1,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
-    fontSize: fontSize.sm,
-    height: 40,
+    fontSize: fontSize.base,
+    height: 48,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 1,
   },
   errorText: {
     fontSize: fontSize.xs,

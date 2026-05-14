@@ -14,6 +14,7 @@ export interface LoanInputs {
   repaymentType: RepaymentType;
   startDate: Date;
   currency: Currency;
+  extraMonthlyPayment?: number;
 }
 
 export interface AmortizationEntry {
@@ -27,13 +28,35 @@ export interface AmortizationEntry {
 
 export interface LoanCalculationResult {
   monthlyPayment: number;
+  finalPayment: number;
+  averagePayment: number;
   totalInterestPaid: number;
   totalAmountPayable: number;
   payOffDate: Date;
   amortizationSchedule: AmortizationEntry[];
 }
 
-export interface LoanResults extends LoanInputs, LoanCalculationResult { }
+export interface LoanResults extends LoanInputs, LoanCalculationResult {}
+
+export interface LoanComparison {
+  equated: LoanCalculationResult;
+  reducing: LoanCalculationResult;
+  interestSavingsWithReducing: number;
+  totalPayableDifference: number;
+}
+
+export interface NextPaymentSummary {
+  month: number;
+  date: Date;
+  payment: number;
+  principal: number;
+  interest: number;
+  balanceAfterPayment: number;
+  remainingPayments: number;
+  paidPayments: number;
+  totalPayments: number;
+  progress: number;
+}
 
 export type LoanType = 'personal' | 'mortgage' | 'auto' | 'business';
 
@@ -42,7 +65,6 @@ export interface LoanTypeConfig {
   type: LoanType;
   title: string;
   description: string;
-  icon: string;
   enabled: boolean;
   defaultInterestRate?: number;
   maxDurationMonths?: number;
@@ -54,7 +76,6 @@ export const LOAN_TYPE_CONFIGS: LoanTypeConfig[] = [
     type: 'personal',
     title: 'Personal Loans',
     description: 'Calculate your personal loan payments',
-    icon: '👤',
     enabled: true,
     defaultInterestRate: 12,
     maxDurationMonths: 84,
@@ -63,7 +84,6 @@ export const LOAN_TYPE_CONFIGS: LoanTypeConfig[] = [
     type: 'mortgage',
     title: 'Mortgages',
     description: 'Home loan calculations',
-    icon: '🏠',
     enabled: true,
     defaultInterestRate: 7,
     maxDurationMonths: 360,
@@ -72,7 +92,6 @@ export const LOAN_TYPE_CONFIGS: LoanTypeConfig[] = [
     type: 'auto',
     title: 'Auto Loans',
     description: 'Vehicle financing calculator',
-    icon: '🚗',
     enabled: true,
     defaultInterestRate: 9,
     maxDurationMonths: 84,
@@ -81,7 +100,6 @@ export const LOAN_TYPE_CONFIGS: LoanTypeConfig[] = [
     type: 'business',
     title: 'Business Loans',
     description: 'Business financing options',
-    icon: '💼',
     enabled: true,
     defaultInterestRate: 14,
     maxDurationMonths: 120,

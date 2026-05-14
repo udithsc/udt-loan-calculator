@@ -1,8 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { LoanCalculationResult, Currency, RepaymentType } from '../../types/loan';
-import { formatCurrency, formatPercentage, formatDate, formatDuration } from '../../utils/formatters';
-import { useTheme, radius, spacing, fontSize } from '../../context/ThemeContext';
+import { LoanCalculationResult, LoanComparison, Currency, RepaymentType } from '../../types/loan';
+import {
+  formatCurrency,
+  formatPercentage,
+  formatDate,
+  formatDuration,
+} from '../../utils/formatters';
+import { ThemeColors, useTheme, radius, spacing, fontSize } from '../../context/ThemeContext';
+import { getNextPaymentSummary } from '../../services/loanCalculator';
 
 interface LoanResultsProps {
   loanAmount: number;
@@ -12,6 +18,7 @@ interface LoanResultsProps {
   startDate: Date;
   currency: Currency;
   results: LoanCalculationResult | null;
+  comparison?: LoanComparison | null;
   onViewAmortization: () => void;
 }
 
@@ -23,6 +30,7 @@ export const LoanResults: React.FC<LoanResultsProps> = ({
   startDate,
   currency,
   results,
+  comparison,
 }) => {
   const { colors } = useTheme();
 
@@ -30,36 +38,45 @@ export const LoanResults: React.FC<LoanResultsProps> = ({
     return null;
   }
 
-  const paymentLabel = repaymentType === 'reducing'
-    ? 'First Payment'
-    : 'Monthly Payment';
+  const paymentLabel = repaymentType === 'reducing' ? 'First Payment' : 'Monthly Payment';
+  const selectedComparison =
+    repaymentType === 'reducing' ? comparison?.equated : comparison?.reducing;
+  const alternateLabel = repaymentType === 'reducing' ? 'Fixed EMI' : 'Reducing';
+  const nextPayment = getNextPaymentSummary(results);
 
   return (
     <View style={styles.container}>
-      {/* Main Result */}
-      <View style={[styles.mainCard, {
-        backgroundColor: colors.card,
-        borderColor: colors.border,
-      }]}>
-        <Text style={[styles.mainLabel, { color: colors.mutedForeground }]}>
-          {paymentLabel}
-        </Text>
-        <Text style={[styles.mainValue, { color: colors.foreground }]}>
+      <View
+        style={[
+          styles.mainCard,
+          {
+            backgroundColor: colors.primary,
+            shadowColor: colors.shadow,
+          },
+        ]}
+      >
+        <Text style={[styles.mainLabel, { color: colors.primaryForeground }]}>{paymentLabel}</Text>
+        <Text style={[styles.mainValue, { color: colors.primaryForeground }]}>
           {formatCurrency(results.monthlyPayment, currency)}
         </Text>
         {repaymentType === 'reducing' && (
-          <Text style={[styles.mainHint, { color: colors.mutedForeground }]}>
+          <Text style={[styles.mainHint, { color: colors.primaryForeground }]}>
             Payments decrease monthly
           </Text>
         )}
       </View>
 
-      {/* Summary Grid */}
       <View style={styles.summaryGrid}>
-        <View style={[styles.summaryCard, {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
-        }]}>
+        <View
+          style={[
+            styles.summaryCard,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              shadowColor: colors.shadow,
+            },
+          ]}
+        >
           <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>
             Total Interest
           </Text>
@@ -67,10 +84,16 @@ export const LoanResults: React.FC<LoanResultsProps> = ({
             {formatCurrency(results.totalInterestPaid, currency)}
           </Text>
         </View>
-        <View style={[styles.summaryCard, {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
-        }]}>
+        <View
+          style={[
+            styles.summaryCard,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              shadowColor: colors.shadow,
+            },
+          ]}
+        >
           <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>
             Total Payable
           </Text>
@@ -80,31 +103,114 @@ export const LoanResults: React.FC<LoanResultsProps> = ({
         </View>
       </View>
 
-      {/* Details */}
-      <View style={[styles.detailsCard, {
-        backgroundColor: colors.card,
-        borderColor: colors.border,
-      }]}>
+      {nextPayment && (
+        <View
+          style={[
+            styles.nextCard,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              shadowColor: colors.shadow,
+            },
+          ]}
+        >
+          <Text style={[styles.nextTitle, { color: colors.foreground }]}>Next payment</Text>
+          <View style={styles.nextRow}>
+            <View>
+              <Text style={[styles.nextAmount, { color: colors.foreground }]}>
+                {formatCurrency(nextPayment.payment, currency)}
+              </Text>
+              <Text style={[styles.nextMeta, { color: colors.mutedForeground }]}>
+                Due {formatDate(nextPayment.date)}
+              </Text>
+            </View>
+            <View style={styles.nextRight}>
+              <Text style={[styles.nextMiniLabel, { color: colors.mutedForeground }]}>
+                Balance after
+              </Text>
+              <Text style={[styles.nextMiniValue, { color: colors.foreground }]}>
+                {formatCurrency(nextPayment.balanceAfterPayment, currency)}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {selectedComparison && (
+        <View
+          style={[
+            styles.comparisonCard,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              shadowColor: colors.shadow,
+            },
+          ]}
+        >
+          <View style={styles.comparisonHeader}>
+            <Text style={[styles.comparisonTitle, { color: colors.foreground }]}>
+              Compare with {alternateLabel}
+            </Text>
+            <Text
+              style={[
+                styles.comparisonBadge,
+                {
+                  color:
+                    comparison && comparison.interestSavingsWithReducing > 0
+                      ? colors.accentForeground
+                      : colors.mutedForeground,
+                  backgroundColor:
+                    comparison && comparison.interestSavingsWithReducing > 0
+                      ? colors.accent
+                      : colors.muted,
+                },
+              ]}
+            >
+              {comparison && comparison.interestSavingsWithReducing > 0
+                ? `${formatCurrency(Math.abs(comparison.interestSavingsWithReducing), currency)} less interest`
+                : 'Same interest'}
+            </Text>
+          </View>
+          <View style={styles.comparisonRows}>
+            <DetailRow
+              label={`${alternateLabel} payment`}
+              value={formatCurrency(selectedComparison.monthlyPayment, currency)}
+              colors={colors}
+            />
+            <DetailRow
+              label={`${alternateLabel} total`}
+              value={formatCurrency(selectedComparison.totalAmountPayable, currency)}
+              colors={colors}
+              isLast
+            />
+          </View>
+        </View>
+      )}
+
+      <View
+        style={[
+          styles.detailsCard,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+            shadowColor: colors.shadow,
+          },
+        ]}
+      >
         <DetailRow
-          label="Principal"
-          value={formatCurrency(loanAmount, currency)}
+          label="Final Payment"
+          value={formatCurrency(results.finalPayment, currency)}
           colors={colors}
         />
         <DetailRow
-          label="Duration"
-          value={formatDuration(durationMonths)}
+          label="Average Payment"
+          value={formatCurrency(results.averagePayment, currency)}
           colors={colors}
         />
-        <DetailRow
-          label="Interest Rate"
-          value={formatPercentage(interestRate)}
-          colors={colors}
-        />
-        <DetailRow
-          label="Start Date"
-          value={formatDate(startDate)}
-          colors={colors}
-        />
+        <DetailRow label="Principal" value={formatCurrency(loanAmount, currency)} colors={colors} />
+        <DetailRow label="Duration" value={formatDuration(durationMonths)} colors={colors} />
+        <DetailRow label="Interest Rate" value={formatPercentage(interestRate)} colors={colors} />
+        <DetailRow label="Start Date" value={formatDate(startDate)} colors={colors} />
         <DetailRow
           label="Pay-off Date"
           value={formatDate(results.payOffDate)}
@@ -119,13 +225,15 @@ export const LoanResults: React.FC<LoanResultsProps> = ({
 const DetailRow: React.FC<{
   label: string;
   value: string;
-  colors: any;
+  colors: ThemeColors;
   isLast?: boolean;
 }> = ({ label, value, colors, isLast }) => (
-  <View style={[
-    styles.detailRow,
-    !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border }
-  ]}>
+  <View
+    style={[
+      styles.detailRow,
+      !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border },
+    ]}
+  >
     <Text style={[styles.detailLabel, { color: colors.mutedForeground }]}>{label}</Text>
     <Text style={[styles.detailValue, { color: colors.foreground }]}>{value}</Text>
   </View>
@@ -136,22 +244,25 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   mainCard: {
-    padding: spacing.xl,
-    borderRadius: radius.lg,
-    borderWidth: 1,
+    padding: spacing['2xl'],
+    borderRadius: radius['2xl'],
     alignItems: 'center',
     marginBottom: spacing.md,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.18,
+    shadowRadius: 26,
+    elevation: 5,
   },
   mainLabel: {
     fontSize: fontSize.xs,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontWeight: '800',
     marginBottom: spacing.xs,
+    opacity: 0.85,
   },
   mainValue: {
     fontSize: fontSize['3xl'],
-    fontWeight: '600',
-    letterSpacing: -1,
+    fontWeight: '900',
   },
   mainHint: {
     fontSize: fontSize.xs,
@@ -165,23 +276,104 @@ const styles = StyleSheet.create({
   summaryCard: {
     flex: 1,
     padding: spacing.lg,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    elevation: 2,
   },
   summaryLabel: {
     fontSize: fontSize.xs,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontWeight: '800',
     marginBottom: spacing.xs,
   },
   summaryValue: {
     fontSize: fontSize.lg,
     fontWeight: '600',
   },
+  nextCard: {
+    padding: spacing.lg,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    marginBottom: spacing.md,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    elevation: 2,
+  },
+  nextTitle: {
+    fontSize: fontSize.base,
+    fontWeight: '800',
+    marginBottom: spacing.md,
+  },
+  nextRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  nextAmount: {
+    fontSize: fontSize['2xl'],
+    fontWeight: '900',
+  },
+  nextMeta: {
+    fontSize: fontSize.sm,
+    marginTop: spacing.xs,
+  },
+  nextRight: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    flexShrink: 1,
+  },
+  nextMiniLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+  },
+  nextMiniValue: {
+    fontSize: fontSize.sm,
+    fontWeight: '800',
+    marginTop: spacing.xs,
+    textAlign: 'right',
+  },
+  comparisonCard: {
+    padding: spacing.lg,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    marginBottom: spacing.md,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    elevation: 2,
+  },
+  comparisonHeader: {
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  comparisonTitle: {
+    fontSize: fontSize.base,
+    fontWeight: '800',
+  },
+  comparisonBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: radius.full,
+    overflow: 'hidden',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    fontSize: fontSize.xs,
+    fontWeight: '800',
+  },
+  comparisonRows: {
+    borderTopWidth: 0,
+  },
   detailsCard: {
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
     overflow: 'hidden',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    elevation: 2,
   },
   detailRow: {
     flexDirection: 'row',
@@ -195,6 +387,8 @@ const styles = StyleSheet.create({
   },
   detailValue: {
     fontSize: fontSize.sm,
-    fontWeight: '500',
+    fontWeight: '700',
+    flexShrink: 1,
+    textAlign: 'right',
   },
 });
