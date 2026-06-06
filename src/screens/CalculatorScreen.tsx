@@ -28,7 +28,13 @@ import {
   RepaymentType,
   LOAN_TYPE_CONFIGS,
 } from '../types/loan';
-import { validateLoanInputs } from '../utils/validators';
+import {
+  validateDuration,
+  validateExtraPayment,
+  validateInterestRate,
+  validateLoanAmount,
+  validateLoanInputs,
+} from '../utils/validators';
 import { useTheme, radius, spacing, fontSize } from '../context/ThemeContext';
 
 type RootStackParamList = {
@@ -39,6 +45,13 @@ type RootStackParamList = {
 
 type CalculatorScreenRouteProp = RouteProp<RootStackParamList, 'Calculator'>;
 type CalculatorScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Calculator'>;
+
+type FieldErrors = {
+  loanAmount?: string | null;
+  duration?: string | null;
+  interestRate?: string | null;
+  extraMonthlyPayment?: string | null;
+};
 
 export const CalculatorScreen: React.FC = () => {
   const navigation = useNavigation<CalculatorScreenNavigationProp>();
@@ -60,6 +73,7 @@ export const CalculatorScreen: React.FC = () => {
   const [results, setResults] = useState<LoanCalculationResult | null>(null);
   const [comparison, setComparison] = useState<LoanComparison | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [saveModalVisible, setSaveModalVisible] = useState(false);
@@ -82,16 +96,34 @@ export const CalculatorScreen: React.FC = () => {
     extraMonthlyPayment: parseFloat(extraMonthlyPayment) || 0,
   });
 
+  const updateField = (field: keyof FieldErrors, updateValue: (value: string) => void) => {
+    return (value: string) => {
+      updateValue(value);
+      setFieldErrors((currentErrors) => ({ ...currentErrors, [field]: null }));
+      setError(null);
+    };
+  };
+
   const handleCalculate = async () => {
     setError(null);
+    setFieldErrors({});
 
     const amount = parseFloat(loanAmount);
     const totalMonths = getTotalMonths();
     const rate = parseFloat(interestRate);
     const extraPayment = parseFloat(extraMonthlyPayment) || 0;
+    const nextFieldErrors: FieldErrors = {
+      loanAmount: validateLoanAmount(amount),
+      duration: validateDuration(totalMonths, loanConfig?.maxDurationMonths),
+      interestRate: validateInterestRate(rate),
+      extraMonthlyPayment: validateExtraPayment(extraPayment),
+    };
 
-    const validationError = validateLoanInputs(amount, totalMonths, rate, extraPayment);
+    const validationError = validateLoanInputs(amount, totalMonths, rate, extraPayment, {
+      maxDurationMonths: loanConfig?.maxDurationMonths,
+    });
     if (validationError) {
+      setFieldErrors(nextFieldErrors);
       setError(validationError);
       setResults(null);
       setComparison(null);
@@ -148,6 +180,7 @@ export const CalculatorScreen: React.FC = () => {
     setComparison(null);
     setIsSaved(false);
     setError(null);
+    setFieldErrors({});
   };
 
   return (
@@ -195,15 +228,19 @@ export const CalculatorScreen: React.FC = () => {
               repaymentType={repaymentType}
               startDate={startDate}
               currency={currency}
-              onLoanAmountChange={setLoanAmount}
-              onDurationYearsChange={setDurationYears}
-              onDurationMonthsChange={setDurationMonths}
-              onInterestRateChange={setInterestRate}
-              onExtraMonthlyPaymentChange={setExtraMonthlyPayment}
+              onLoanAmountChange={updateField('loanAmount', setLoanAmount)}
+              onDurationYearsChange={updateField('duration', setDurationYears)}
+              onDurationMonthsChange={updateField('duration', setDurationMonths)}
+              onInterestRateChange={updateField('interestRate', setInterestRate)}
+              onExtraMonthlyPaymentChange={updateField(
+                'extraMonthlyPayment',
+                setExtraMonthlyPayment,
+              )}
               onRepaymentTypeChange={setRepaymentType}
               onStartDateChange={setStartDate}
               onCurrencyChange={setCurrency}
               loanType={loanType}
+              errors={fieldErrors}
             />
           </View>
 

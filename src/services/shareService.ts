@@ -2,6 +2,7 @@ import { Share, Alert } from 'react-native';
 import * as MailComposer from 'expo-mail-composer';
 import { LoanResults } from '../types/loan';
 import { formatCurrency, formatDate, formatPercentage, formatDuration } from '../utils/formatters';
+import { buildAmortizationCsv } from './exportService';
 
 export const shareLoanResults = async (results: LoanResults): Promise<boolean> => {
   const {
@@ -48,6 +49,24 @@ Calculated with Universal Loan Calculator`;
   } catch (error) {
     console.error('Error sharing:', error);
     Alert.alert('Share Failed', 'Unable to share the results. Please try again.', [{ text: 'OK' }]);
+    return false;
+  }
+};
+
+export const shareAmortizationCsv = async (results: LoanResults): Promise<boolean> => {
+  const csv = buildAmortizationCsv(results);
+
+  try {
+    const shareResult = await Share.share({
+      title: 'Amortization Schedule CSV',
+      message: csv,
+    });
+    return shareResult.action === Share.sharedAction;
+  } catch (error) {
+    console.error('Error sharing amortization CSV:', error);
+    Alert.alert('Share Failed', 'Unable to share the CSV schedule. Please try again.', [
+      { text: 'OK' },
+    ]);
     return false;
   }
 };

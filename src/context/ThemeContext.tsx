@@ -7,7 +7,7 @@ import React, {
   useCallback,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useColorScheme } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, useColorScheme } from 'react-native';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -212,7 +212,13 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const colors = isDark ? darkColors : lightColors;
 
   if (!isLoaded) {
-    return null;
+    const loadingColors = systemColorScheme === 'dark' ? darkColors : lightColors;
+
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: loadingColors.background }]}>
+        <ActivityIndicator color={loadingColors.primary} />
+      </View>
+    );
   }
 
   return (
@@ -221,6 +227,14 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     </ThemeContext.Provider>
   );
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
 
 export const useTheme = (): ThemeContextType => {
   const context = useContext(ThemeContext);

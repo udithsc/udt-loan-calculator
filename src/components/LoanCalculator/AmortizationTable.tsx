@@ -45,6 +45,12 @@ export const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, 
         ]}
         onPress={() => toggleExpand(item.month)}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: isExpanded }}
+        accessibilityLabel={`Month ${item.month}, payment ${formatCurrency(
+          item.payment,
+          currency,
+        )}, remaining balance ${formatCurrency(item.balance, currency)}`}
       >
         <View style={styles.rowMain}>
           <View style={styles.monthCol}>

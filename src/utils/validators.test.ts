@@ -27,6 +27,11 @@ test('validateDuration accepts whole months only', () => {
   assert.equal(validateDuration(601), 'Maximum duration is 50 years (600 months)');
 });
 
+test('validateDuration accepts calculator-specific maximums', () => {
+  assert.equal(validateDuration(84, 84), null);
+  assert.equal(validateDuration(85, 84), 'Maximum duration is 7 years (84 months)');
+});
+
 test('validateInterestRate accepts zero and rejects invalid rates', () => {
   assert.equal(validateInterestRate(0), null);
   assert.equal(validateInterestRate(12.5), null);
@@ -47,4 +52,8 @@ test('validateLoanInputs returns the first validation error', () => {
   assert.equal(validateLoanInputs(1000, 12, -1), 'Interest rate cannot be negative');
   assert.equal(validateLoanInputs(1000, 12, 5, -1), 'Extra payment cannot be negative');
   assert.equal(validateLoanInputs(1000, 12, 5), null);
+  assert.equal(
+    validateLoanInputs(1000, 85, 5, 0, { maxDurationMonths: 84 }),
+    'Maximum duration is 7 years (84 months)',
+  );
 });

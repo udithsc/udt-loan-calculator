@@ -26,6 +26,12 @@ interface LoanInputsProps {
   onRepaymentTypeChange: (type: RepaymentType) => void;
   onStartDateChange: (date: Date) => void;
   onCurrencyChange: (currency: Currency) => void;
+  errors?: {
+    loanAmount?: string | null;
+    duration?: string | null;
+    interestRate?: string | null;
+    extraMonthlyPayment?: string | null;
+  };
 }
 
 export const LoanInputs: React.FC<LoanInputsProps> = ({
@@ -46,6 +52,7 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
   onRepaymentTypeChange,
   onStartDateChange,
   onCurrencyChange,
+  errors = {},
 }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const { colors } = useTheme();
@@ -95,6 +102,7 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
             onChangeText={onLoanAmountChange}
             placeholder="0"
             keyboardType="numeric"
+            error={errors.loanAmount}
           />
         </View>
         <View style={styles.flex1}>
@@ -112,6 +120,8 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
             onChangeText={onDurationYearsChange}
             placeholder="0"
             keyboardType="numeric"
+            error={errors.duration}
+            accessibilityLabel="Duration years"
           />
           <Text style={[styles.durationLabel, { color: colors.mutedForeground }]}>years</Text>
         </View>
@@ -121,6 +131,7 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
             onChangeText={onDurationMonthsChange}
             placeholder="0"
             keyboardType="numeric"
+            accessibilityLabel="Duration months"
           />
           <Text style={[styles.durationLabel, { color: colors.mutedForeground }]}>months</Text>
         </View>
@@ -147,6 +158,7 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
         onChangeText={onInterestRateChange}
         placeholder={loanConfig?.defaultInterestRate?.toString() || '0'}
         keyboardType="decimal-pad"
+        error={errors.interestRate}
       />
 
       <NumberInput
@@ -155,6 +167,7 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
         onChangeText={onExtraMonthlyPaymentChange}
         placeholder="0"
         keyboardType="decimal-pad"
+        error={errors.extraMonthlyPayment}
       />
 
       {/* Repayment Type */}
@@ -171,6 +184,9 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
           ]}
           onPress={() => onRepaymentTypeChange('equated')}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityState={{ selected: repaymentType === 'equated' }}
+          accessibilityLabel="Fixed EMI repayment type"
         >
           <Text
             style={[
@@ -192,6 +208,9 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
           ]}
           onPress={() => onRepaymentTypeChange('reducing')}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityState={{ selected: repaymentType === 'reducing' }}
+          accessibilityLabel="Reducing balance repayment type"
         >
           <Text
             style={[
@@ -219,6 +238,8 @@ export const LoanInputs: React.FC<LoanInputsProps> = ({
         ]}
         onPress={() => setShowDatePicker(true)}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`Start date ${formatDate(startDate)}`}
       >
         <Text style={[styles.dateButtonText, { color: colors.foreground }]}>
           {formatDate(startDate)}

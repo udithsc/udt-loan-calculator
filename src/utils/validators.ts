@@ -1,5 +1,9 @@
 import { CONFIG } from '../constants/config';
 
+type LoanInputValidationOptions = {
+  maxDurationMonths?: number;
+};
+
 export const validateLoanAmount = (amount: number): string | null => {
   if (isNaN(amount) || amount <= 0) {
     return 'Please enter a valid loan amount';
@@ -13,19 +17,22 @@ export const validateLoanAmount = (amount: number): string | null => {
   return null;
 };
 
-export const validateDuration = (months: number): string | null => {
+export const validateDuration = (
+  months: number,
+  maxMonths = CONFIG.MAX_DURATION_MONTHS,
+): string | null => {
   if (isNaN(months) || months <= 0) {
     return 'Please enter a valid duration';
   }
   if (months < CONFIG.MIN_DURATION_MONTHS) {
     return `Minimum duration is ${CONFIG.MIN_DURATION_MONTHS} month`;
   }
-  if (months > CONFIG.MAX_DURATION_MONTHS) {
-    const years = CONFIG.MAX_DURATION_MONTHS / 12;
-    return `Maximum duration is ${years} years (${CONFIG.MAX_DURATION_MONTHS} months)`;
-  }
   if (Math.floor(months) !== months) {
     return 'Duration must be a whole number';
+  }
+  if (months > maxMonths) {
+    const years = maxMonths / 12;
+    return `Maximum duration is ${years} years (${maxMonths} months)`;
   }
   return null;
 };
@@ -58,11 +65,12 @@ export const validateLoanInputs = (
   duration: number,
   interestRate: number,
   extraPayment: number = 0,
+  options: LoanInputValidationOptions = {},
 ): string | null => {
   const amountError = validateLoanAmount(amount);
   if (amountError) return amountError;
 
-  const durationError = validateDuration(duration);
+  const durationError = validateDuration(duration, options.maxDurationMonths);
   if (durationError) return durationError;
 
   const rateError = validateInterestRate(interestRate);

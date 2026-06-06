@@ -66,6 +66,7 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
                 onPress={() => setModalVisible(false)}
                 style={styles.closeButton}
                 accessibilityLabel="Close"
+                accessibilityRole="button"
               >
                 <MaterialCommunityIcons name="close" size={22} color={colors.mutedForeground} />
               </TouchableOpacity>
@@ -107,6 +108,9 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
                     setModalVisible(false);
                     setSearchQuery('');
                   }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: selectedCurrency.code === item.code }}
+                  accessibilityLabel={`${item.name}, ${item.code}`}
                 >
                   <View style={styles.currencyItemLeft}>
                     <Text style={[styles.currencyCode, { color: colors.foreground }]}>

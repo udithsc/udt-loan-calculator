@@ -15,6 +15,7 @@ import { AmortizationTable } from '../components/LoanCalculator/AmortizationTabl
 import { LoanCalculationResult, LoanInputs as LoanInputsType } from '../types/loan';
 import {
   shareAmortizationSchedule,
+  shareAmortizationCsv,
   sendLoanResultsByEmail,
   shareLoanResults,
 } from '../services/shareService';
@@ -47,6 +48,17 @@ export const AmortizationScreen: React.FC = () => {
     try {
       const loanResults = { ...inputs, ...results };
       await shareAmortizationSchedule(loanResults);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleShareCsv = async () => {
+    setShareModalVisible(false);
+    setIsLoading(true);
+    try {
+      const loanResults = { ...inputs, ...results };
+      await shareAmortizationCsv(loanResults);
     } finally {
       setIsLoading(false);
     }
@@ -154,6 +166,7 @@ export const AmortizationScreen: React.FC = () => {
             <TouchableOpacity
               style={[styles.modalOption, { borderBottomColor: colors.border }]}
               onPress={handleShareSummary}
+              accessibilityRole="button"
             >
               <MaterialCommunityIcons name="share-variant" size={20} color={colors.primary} />
               <Text style={[styles.modalOptionText, { color: colors.foreground }]}>
@@ -164,6 +177,7 @@ export const AmortizationScreen: React.FC = () => {
             <TouchableOpacity
               style={[styles.modalOption, { borderBottomColor: colors.border }]}
               onPress={handleShare}
+              accessibilityRole="button"
             >
               <MaterialCommunityIcons name="file-table-outline" size={20} color={colors.primary} />
               <Text style={[styles.modalOptionText, { color: colors.foreground }]}>
@@ -173,7 +187,21 @@ export const AmortizationScreen: React.FC = () => {
 
             <TouchableOpacity
               style={[styles.modalOption, { borderBottomColor: colors.border }]}
+              onPress={handleShareCsv}
+              accessibilityRole="button"
+            >
+              <MaterialCommunityIcons
+                name="file-delimited-outline"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={[styles.modalOptionText, { color: colors.foreground }]}>Share CSV</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalOption, { borderBottomColor: colors.border }]}
               onPress={handleEmail}
+              accessibilityRole="button"
             >
               <MaterialCommunityIcons name="email-outline" size={20} color={colors.primary} />
               <Text style={[styles.modalOptionText, { color: colors.foreground }]}>
@@ -184,6 +212,7 @@ export const AmortizationScreen: React.FC = () => {
             <TouchableOpacity
               style={styles.modalCancel}
               onPress={() => setShareModalVisible(false)}
+              accessibilityRole="button"
             >
               <Text style={[styles.modalCancelText, { color: colors.mutedForeground }]}>
                 Cancel

@@ -166,6 +166,9 @@ export const HomeScreen: React.FC = () => {
                 onPress={() => handleLoanTypeSelect(item.type)}
                 disabled={!item.enabled}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.title}. ${item.description}`}
+                accessibilityState={{ disabled: !item.enabled }}
               >
                 <View
                   style={[
@@ -216,6 +219,10 @@ export const HomeScreen: React.FC = () => {
                     },
                   ]}
                   onPress={() => handleHistoryItemPress(item)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Saved loan ${
+                    item.name || item.inputs.repaymentType
+                  }, ${formatCurrency(item.inputs.loanAmount, item.inputs.currency)}`}
                 >
                   <View style={styles.historyItemContent}>
                     <Text style={[styles.historyLabel, { color: colors.primary }]}>
